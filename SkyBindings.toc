@@ -1,0 +1,9 @@
+## Interface: 120001
+## Title: SkyBindings
+## Notes: Keybinds for skyriding abilities.
+## Author: MiCHaeL
+## Version: @project-version@
+## IconTexture: Interface\Icons\Ability_DragonRiding_StaticFlight01
+## SavedVariables: SkyBindingsDB
+
+SkyBindings.lua
