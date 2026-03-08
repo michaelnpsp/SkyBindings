@@ -22,15 +22,15 @@ function addon:Init(frame)
 	local keyDB = addonName .. 'DB'
 	_G[keyDB] = type(_G[keyDB])=='table' and _G[keyDB] or {}
 	self.db = _G[keyDB]
-	-- create skyriding driver frame
+	-- create skyriding driver frame handler
 	if frame then
 		self.frame = frame
 		RegisterAttributeDriver(self.frame, "state-skyriding", '[bonusbar:5,flying] on;off')
 	end
-	-- create vehicleui driver frame
+	-- create vehicleui driver frame handler
 	if self.db.vehicle then
 		self.frameV = CreateFrame("Frame", "SkyBindingsDriverFrameVehicle", nil, "SecureHandlerStateTemplate")
-		RegisterAttributeDriver(self.frameV, "state-vehicleui", '[vehicleui] on;off')
+		RegisterAttributeDriver(self.frameV, "state-vehicleui", '[vehicleui][possessbar][overridebar] on;off')
 	end
 	-- command line options
 	SLASH_SKYBINDINGS1, SLASH_SKYBINDINGS2, SLASH_SKYBINDINGS3 = "/skybind", "/skybinds", "/skybindings"
@@ -71,13 +71,10 @@ function addon:LoadVehicle()
 	end
 end
 
-function addon:Load(help)
+function addon:Load()
 	if #self.db>0 then
 		self:LoadSkyriding()
 		self:LoadVehicle()
-	end
-	if help then
-		self:Help()
 	end
 end
 
@@ -85,7 +82,6 @@ function addon:Save(keys)
 	for idx, key in ipairs(keys) do
 		self.db[idx] = key
 	end
-	self:Load(true)
 end
 
 function addon:Command(args)
@@ -97,6 +93,8 @@ function addon:Command(args)
 		print( string.format('Skybinding vehicle "%s": A Reload UI is required!', self.db.vehicle and "enabled" or "disabled") )
 	else
 		self:Save( {strsplit(" ,", args, 5)} )
+		self:Load()
+		self:Help()
 	end
 end
 
