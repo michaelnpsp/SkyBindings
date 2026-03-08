@@ -22,9 +22,16 @@ function addon:Init(frame)
 	local keyDB = addonName .. 'DB'
 	_G[keyDB] = type(_G[keyDB])=='table' and _G[keyDB] or {}
 	self.db = _G[keyDB]
-	-- create driver frame
-	self.frame = frame
-	RegisterAttributeDriver(self.frame, "state-skyriding", '[bonusbar:5,flying] on;off')
+	-- create skyriding driver frame
+	if frame then
+		self.frame = frame
+		RegisterAttributeDriver(self.frame, "state-skyriding", '[bonusbar:5,flying] on;off')
+	end
+	-- create vehicleui driver frame
+	if self.db.vehicle then
+		self.frameV = CreateFrame("Frame", "SkyBindingsDriverFrameVehicle", nil, "SecureHandlerStateTemplate")
+		RegisterAttributeDriver(self.frameV, "state-vehicleui", '[vehicleui] on;off')
+	end
 	-- command line options
 	SLASH_SKYBINDINGS1, SLASH_SKYBINDINGS2, SLASH_SKYBINDINGS3 = "/skybind", "/skybinds", "/skybindings"
 	SlashCmdList.SKYBINDINGS = function(args) addon:Command(args) end
@@ -36,21 +43,41 @@ function addon:Reset()
 	DRIVER = gsub( DRIVER, "--<.*-->","--<\n-->" )
 end
 
-function addon:Bind(key, spellID, pri)
-	DRIVER = gsub( DRIVER, "-->", string.format('self:SetBindingSpell(true,"%s","%s")\n-->', key, C_Spell.GetSpellName(spellID) or '') )
+function addon:Bind(bind)
+	DRIVER = gsub( DRIVER, "-->", bind..'\n-->' )
 end
 
-function addon:Apply()
-	self.frame:SetAttribute("_onstate-skyriding", DRIVER)
+function addon:Apply(frame, state)
+	frame:SetAttribute("_on"..state, DRIVER)
 end
 
-function addon:Load()
-	if #self.db>0 then
+function addon:LoadSkyriding()
+	if self.frame then
 		self:Reset()
 		for idx,key in ipairs(self.db) do
-			self:Bind( key, SPELLS[idx] )
+			self:Bind( string.format('self:SetBindingSpell(true,"%s","%s")', key, C_Spell.GetSpellName(SPELLS[idx]) or '') )
 		end
-		self:Apply()
+		self:Apply(self.frame, "state-skyriding")
+	end
+end
+
+function addon:LoadVehicle()
+	if self.frameV then
+		self:Reset()
+		for idx,key in ipairs(self.db) do
+			self:Bind( string.format('self:SetBindingClick(true,"%s","OverrideActionBarButton%d")', key, idx) )
+		end
+		self:Apply(self.frameV, "state-vehicleui")
+	end
+end
+
+function addon:Load(help)
+	if #self.db>0 then
+		self:LoadSkyriding()
+		self:LoadVehicle()
+	end
+	if help then
+		self:Help()
 	end
 end
 
@@ -58,22 +85,25 @@ function addon:Save(keys)
 	for idx, key in ipairs(keys) do
 		self.db[idx] = key
 	end
-	self:Load()
-	self:Help(true)
+	self:Load(true)
 end
 
 function addon:Command(args)
 	local args = strupper(strtrim(args))
 	if args==nil or args=='' or args=='HELP' then
 		self:Help( args=='HELP' )
+	elseif args=="VEHICLE" then
+		self.db.vehicle = (not self.db.vehicle) or nil
+		print( string.format('Skybinding vehicle "%s": A Reload UI is required!', self.db.vehicle and "enabled" or "disabled") )
 	else
 		self:Save( {strsplit(" ,", args, 5)} )
 	end
 end
 
 function addon:Help(extra)
+	print("\n")
 	print("SkyBindings addon:")
-	print("  Configure key binds for Skyriding abilities.")
+	print("    Configure keybinds for Skyriding abilities.")
 	print("Current keybinds:")
 	if #self.db>0 then
 		for idx, spellID in ipairs(SPELLS) do
@@ -81,19 +111,27 @@ function addon:Help(extra)
 			local name = C_Spell.GetSpellName(spellID)
 			print( string.format('  "%s" : %s', key or 'NONE', name or 'ERROR' ) )
 		end
+		if self.db.vehicle then
+			print("  Keybinds are enabled for the vehicle UI too.")
+		end
 	else
-		print("  No bindings configured.")
+		print("  No keybinds configured.")
 	end
 	print("Commands:")
-	print("  /skybinds help")
+	print("  /skybinds vehicle")
+	print("      Toggle use of the same keybinds for the vehicle UI.")
 	print("  /skybinds Key1 Key2 Key3 Key4 Key5")
 	if extra then
 		for idx, spellID in ipairs(SPELLS) do
-			print( string.format('    Key%d: bind for "%s"', idx, C_Spell.GetSpellName(spellID)) )
+			print( string.format('      Key%d: bind for "%s"', idx, C_Spell.GetSpellName(spellID)) )
 		end
 		print("  Examples:")
-		print("    /skybinds 1 2 3 MOUSE4 MOUSE5")
-		print("    /skybinds A S D F G")
+		print("      /skybinds 1 2 3 MOUSE4 MOUSE5")
+		print("      /skybinds A S D F G")
+	else
+		print("      Assign key binds.")
+		print("  /skybinds help")
+		print("      Displays additional info.")
 	end
 end
 
