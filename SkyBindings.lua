@@ -32,6 +32,36 @@ function addon:Init(frame)
 	self.Init = nil
 end
 
+function addon:Reset()
+	DRIVER = gsub( DRIVER, "--<.*-->","--<\n-->" )
+end
+
+function addon:Bind(key, spellID, pri)
+	DRIVER = gsub( DRIVER, "-->", string.format('self:SetBindingSpell(true,"%s","%s")\n-->', key, C_Spell.GetSpellName(spellID) or '') )
+end
+
+function addon:Apply()
+	self.frame:SetAttribute("_onstate-skyriding", DRIVER)
+end
+
+function addon:Load()
+	if #self.db>0 then
+		self:Reset()
+		for idx,key in ipairs(self.db) do
+			self:Bind( key, SPELLS[idx] )
+		end
+		self:Apply()
+	end
+end
+
+function addon:Save(keys)
+	for idx, key in ipairs(keys) do
+		self.db[idx] = key
+	end
+	self:Load()
+	self:Help(true)
+end
+
 function addon:Command(args)
 	local args = strupper(strtrim(args))
 	if args==nil or args=='' or args=='HELP' then
@@ -65,36 +95,6 @@ function addon:Help(extra)
 		print("    /skybinds 1 2 3 MOUSE4 MOUSE5")
 		print("    /skybinds A S D F G")
 	end
-end
-
-function addon:Reset()
-	DRIVER = gsub( DRIVER, "--<.*-->","--<\n-->" )
-end
-
-function addon:Bind(key, spellID, pri)
-	DRIVER = gsub( DRIVER, "-->", string.format('self:SetBindingSpell(true,"%s","%s")\n-->', key, C_Spell.GetSpellName(spellID) or '') )
-end
-
-function addon:Apply()
-	self.frame:SetAttribute("_onstate-skyriding", DRIVER)
-end
-
-function addon:Load()
-	if #self.db>0 then
-		self:Reset()
-		for idx,key in ipairs(self.db) do
-			self:Bind( key, SPELLS[idx] )
-		end
-		self:Apply()
-	end
-end
-
-function addon:Save(keys)
-	for idx, key in ipairs(keys) do
-		self.db[idx] = key
-	end
-	self:Load()
-	self:Help(true)
 end
 
 function addon:Run(frame)
