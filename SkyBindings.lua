@@ -101,35 +101,31 @@ end
 function addon:Help(extra)
 	print("\n")
 	print("SkyBindings addon:")
-	print("    Configure keybinds for Skyriding abilities.")
+	print("    Keybinding for skyriding abilities, type '/skybinds help' for more info.")
 	print("Current keybinds:")
 	if #self.db>0 then
 		for idx, spellID in ipairs(SPELLS) do
 			local key = self.db[idx]
 			local name = C_Spell.GetSpellName(spellID)
-			print( string.format('  "%s" : %s', key or 'NONE', name or 'ERROR' ) )
+			print( string.format('    "%s" : %s', key or 'NONE', name or 'ERROR' ) )
 		end
 		if self.db.vehicle then
-			print("  Keybinds are enabled for the vehicle UI too.")
+			print("    Keybinds are enabled for the vehicle UI too.")
 		end
 	else
 		print("  No keybinds configured.")
 	end
-	print("Commands:")
-	print("  /skybinds vehicle")
-	print("      Toggle use of the same keybinds for the vehicle UI.")
-	print("  /skybinds Key1 Key2 Key3 Key4 Key5")
 	if extra then
+		print("Commands:")
+		print("  /skybinds vehicle")
+		print("      Toggle use of the keybinds for the vehicle UI.")
+		print("  /skybinds key1 key2 key3 key4 key5")
 		for idx, spellID in ipairs(SPELLS) do
-			print( string.format('      Key%d: bind for "%s"', idx, C_Spell.GetSpellName(spellID)) )
+			print( string.format('      key%d: bind for "%s"', idx, C_Spell.GetSpellName(spellID)) )
 		end
 		print("  Examples:")
 		print("      /skybinds 1 2 3 MOUSE4 MOUSE5")
 		print("      /skybinds A S D F G")
-	else
-		print("      Assign key binds.")
-		print("  /skybinds help")
-		print("      Displays additional info.")
 	end
 end
 
