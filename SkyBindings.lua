@@ -2,7 +2,7 @@
 
 local addonName, addon = ...
 
-local SPELLS = {
+addon.SPELLS = {
 	372608, -- Surge Forward
 	372610, -- Skyward Ascent
 	361584, -- Whirling Surge
@@ -32,9 +32,8 @@ function addon:Init(frame)
 		self.frameV = CreateFrame("Frame", "SkyBindingsDriverFrameVehicle", nil, "SecureHandlerStateTemplate")
 		RegisterAttributeDriver(self.frameV, "state-vehicleui", '[vehicleui][possessbar][overridebar] on;off')
 	end
-	-- command line options
-	SLASH_SKYBINDINGS1, SLASH_SKYBINDINGS2, SLASH_SKYBINDINGS3 = "/skybind", "/skybinds", "/skybindings"
-	SlashCmdList.SKYBINDINGS = function(args) addon:Command(args) end
+	-- command line & settings panel
+	self:InitSettings()
 	-- remove method
 	self.Init = nil
 end
@@ -55,7 +54,7 @@ function addon:LoadSkyriding()
 	if self.frame then
 		self:Reset()
 		for idx,key in ipairs(self.db) do
-			self:Bind( string.format('self:SetBindingSpell(true,"%s","%s")', key, C_Spell.GetSpellName(SPELLS[idx]) or '') )
+			self:Bind( string.format('self:SetBindingSpell(true,"%s","%s")', key, C_Spell.GetSpellName(self.SPELLS[idx]) or '') )
 		end
 		self:Apply(self.frame, "state-skyriding")
 	end
@@ -84,51 +83,6 @@ function addon:Save(keys)
 	end
 end
 
-function addon:Command(args)
-	local args = strupper(strtrim(args))
-	if args==nil or args=='' or args=='HELP' then
-		self:Help( args=='HELP' )
-	elseif args=="VEHICLE" then
-		self.db.vehicle = (not self.db.vehicle) or nil
-		print( string.format('Skybinding vehicle "%s": A Reload UI is required!', self.db.vehicle and "enabled" or "disabled") )
-	else
-		self:Save( {strsplit(" ,", args, 5)} )
-		self:Load()
-		self:Help()
-	end
-end
-
-function addon:Help(extra)
-	print("\n")
-	print("SkyBindings addon:")
-	print("    Keybinding for skyriding abilities, type '/skybinds help' for more info.")
-	print("Current keybinds:")
-	if #self.db>0 then
-		for idx, spellID in ipairs(SPELLS) do
-			local key = self.db[idx]
-			local name = C_Spell.GetSpellName(spellID)
-			print( string.format('    "%s" : %s', key or 'NONE', name or 'ERROR' ) )
-		end
-		if self.db.vehicle then
-			print("    Keybinds are enabled for the vehicle UI too.")
-		end
-	else
-		print("  No keybinds configured.")
-	end
-	if extra then
-		print("Commands:")
-		print("  /skybinds vehicle")
-		print("      Toggle use of the keybinds for the vehicle UI.")
-		print("  /skybinds key1 key2 key3 key4 key5")
-		for idx, spellID in ipairs(SPELLS) do
-			print( string.format('      key%d: bind for "%s"', idx, C_Spell.GetSpellName(spellID)) )
-		end
-		print("  Examples:")
-		print("      /skybinds 1 2 3 MOUSE4 MOUSE5")
-		print("      /skybinds A S D F G")
-	end
-end
-
 function addon:Run(frame)
 	self:Init(frame)
 	self:Load()
@@ -138,7 +92,7 @@ end
 local frame = CreateFrame("Frame", "SkyBindingsDriverFrame", nil, "SecureHandlerStateTemplate")
 frame:RegisterEvent("ADDON_LOADED")
 frame:SetScript("OnEvent", function(frame, event, name)
-	if event == "ADDON_LOADED" and name == addonName then
+	if name == addonName then
 		frame:SetScript("OnEvent", nil)
 		addon:Run(frame)
 	end
