@@ -5,6 +5,9 @@ local addonName, addon = ...
 function addon:Command(args)
 	local args = strupper(strtrim(args))
 	if args==nil or args=='' or args=='HELP' then
+		if arg==nil then
+			self:OpenSettings()
+		end
 		self:Help( args=='HELP' )
 	elseif args=="VEHICLE" then
 		self.db.vehicle = (not self.db.vehicle) or nil
@@ -49,12 +52,10 @@ end
 
 -- blizzard settings panel
 
-local CreateBindSetting
 do
-	local invalidKey = {
+	local invalidKeys = {
 		ESCAPE = true,
 		LeftButton = true,
-		-- RightButton = true,
 		MiddleButton = true,
 		MOUSE1 = true,
 		MOUSE2 = true,
@@ -73,9 +74,9 @@ do
 	frameBind:SetAllPoints()
 	frameBind:EnableMouse(true)
 	frameBind:EnableKeyboard(true)
-	function CreateBindSetting(category, layout, idx)
+	function addon:CreateBindSetting(category, layout, idx)
 		local function GetName()
-			return (idx==frameBind.idx and ">>> Assign Binding <<<") or addon.db[idx] or "Not Bound"
+			return (idx==frameBind.idx and ">>> Assign Binding <<<") or self.db[idx] or "Not Bound"
 		end
 		local function Refresh()
 			SettingsPanel:Hide()
@@ -84,9 +85,9 @@ do
 		local function SetBinding(_, key)
 			frameBind.idx = nil
 			frameBind:Hide()
-			if not invalidKey[key] then
-				addon.db[idx] = key~='RightButton' and key or nil
-				addon:Load()
+			if not invalidKeys[key] then
+				self.db[idx] = key~='RightButton' and key or nil
+				self:Load()
 			end
 			Refresh()
 		end
@@ -97,8 +98,12 @@ do
 			frameBind:Show()
 			Refresh()
 		end
+		local label = C_Spell.GetSpellName(self.SPELLS[idx])
+		if self.db.vehicle then
+			label = string.format("Button%d / %s", idx, label)
+		end
 		local button = CreateSettingsButtonInitializer(
-			C_Spell.GetSpellName(addon.SPELLS[idx]),
+			label,
 			GetName,
 			WaitBinding,
 			"Click to start binding mode.\nEscape to exit binding mode.\nRight-Click to unbind current key.",
@@ -108,15 +113,19 @@ do
 	end
 end
 
-local function CreateCheckSetting(cat, key, nam, desc, def, get, set)
-	local setting = Settings.RegisterProxySetting( cat, key,
+function addon:CreateCheckSetting(cat, key, nam, des, def, get, set)
+	local set = Settings.RegisterProxySetting( cat, key,
 		type(def),
 		nam,
 		def,
 		function() return get(key) end,
 		function(val) set(key, val) end
 	)
-	Settings.CreateCheckbox(cat, setting, desc)
+	Settings.CreateCheckbox(cat, set, des)
+end
+
+function addon:OpenSettings()
+	Settings.OpenToCategory(self.category:GetID())
 end
 
 -- init settings
@@ -127,17 +136,18 @@ function addon:InitSettings()
 	SlashCmdList.SKYBINDINGS = function(args) self:Command(args) end
 	-- settings panel
 	local cat, lay = Settings.RegisterVerticalLayoutCategory(addonName)
-	CreateBindSetting( cat, lay, 1 )
-	CreateBindSetting( cat, lay, 2 )
-	CreateBindSetting( cat, lay, 3 )
-	CreateBindSetting( cat, lay, 4 )
-	CreateBindSetting( cat, lay, 5 )
-	CreateCheckSetting( cat, "SKYBINDINGS_VEHICLE",
-		"Enabled in vehicles too",
-		"Enable this option to use these bindings when you are controlling a vehicle or another npc.\nA UI reload is required.",
+	self.category = cat
+	self:CreateBindSetting( cat, lay, 1 )
+	self:CreateBindSetting( cat, lay, 2 )
+	self:CreateBindSetting( cat, lay, 3 )
+	self:CreateBindSetting( cat, lay, 4 )
+	self:CreateBindSetting( cat, lay, 5 )
+	self:CreateCheckSetting( cat, "SKYBINDINGS_VEHICLE",
+		"Enabled for vehicles",
+		"Check this option to use these bindings when you are controlling a vehicle or another npc.\nA UI reload is required.",
 		true,
 		function() return self.db.vehicle end,
-		function(_, val) self.db.vehicle = val or nil end
+		function(_, val) self.db.vehicle = val or nil; end
 	)
 	Settings.RegisterAddOnCategory(cat)
 	self.InitSettings = nil
